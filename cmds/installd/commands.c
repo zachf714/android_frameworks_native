@@ -1258,7 +1258,8 @@ fail:
     return -1;
 }
 
-static void run_aapt(const char *source_apk, const char *internal_path, int restable_fd, int resapk_fd, int pkgId)
+static void run_aapt(const char *source_apk, const char *internal_path, int restable_fd,
+                     int resapk_fd, int pkgId, const char *common_res_path)
 {
     static const char *AAPT_BIN = "/system/bin/aapt";
     static const char *MANIFEST = "/data/app/AndroidManifest.xml";
@@ -1272,8 +1273,21 @@ static void run_aapt(const char *source_apk, const char *internal_path, int rest
     snprintf(restable_str, sizeof(restable_str), "%d", restable_fd);
     snprintf(resapk_str, sizeof(resapk_str), "%d", resapk_fd);
     snprintf(pkgId_str, sizeof(pkgId_str), "%d", pkgId);
+    bool hasCommonResources = (common_res_path != NULL && common_res_path[0] != '\0');
 
-    execl(AAPT_BIN, AAPT_BIN, "package",
+    if (hasCommonResources) {
+        execl(AAPT_BIN, AAPT_BIN, "package",
+                              "-M", MANIFEST,
+                              "-S", source_apk,
+                              "-X", internal_path,
+                              "-R", restable_str,
+                              "-I", FRAMEWORK_RES,
+                              "-I", common_res_path,
+                              "-r", resapk_str,
+                              "-x", pkgId_str,
+                              (char*)NULL);
+    } else {
+        execl(AAPT_BIN, AAPT_BIN, "package",
                               "-M", MANIFEST,
                               "-S", source_apk,
                               "-X", internal_path,
@@ -1282,13 +1296,15 @@ static void run_aapt(const char *source_apk, const char *internal_path, int rest
                               "-r", resapk_str,
                               "-x", pkgId_str,
                               (char*)NULL);
+    }
     ALOGE("execl(%s) failed: %s\n", AAPT_BIN, strerror(errno));
 }
 
-int aapt(const char *source_apk, const char *internal_path, const char *out_restable, uid_t uid, int pkgId)
+int aapt(const char *source_apk, const char *internal_path, const char *out_restable, uid_t uid,
+         int pkgId, const char *common_res_path)
 {
-    ALOGD("aapt source_apk=%s internal_path=%s out_restable=%s uid=%d, pkgId=%d\n",
-             source_apk, internal_path, out_restable, uid, pkgId);
+    ALOGD("aapt source_apk=%s internal_path=%s out_restable=%s uid=%d, pkgId=%d, common_res_path=%s",
+             source_apk, internal_path, out_restable, uid, pkgId, common_res_path);
     int restable_fd = -1;
     int resapk_fd = -1;
     char restable_path[PATH_MAX];
@@ -1351,7 +1367,7 @@ int aapt(const char *source_apk, const char *internal_path, const char *out_rest
             exit(1);
         }
 
-        run_aapt(source_apk, internal_path, restable_fd, resapk_fd, pkgId);
+        run_aapt(source_apk, internal_path, restable_fd, resapk_fd, pkgId, common_res_path);
         exit(1); /* only if exec call to idmap failed */
     } else {
         int status = wait_child(pid);
