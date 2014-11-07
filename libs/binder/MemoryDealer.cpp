@@ -237,6 +237,14 @@ MemoryDealer::MemoryDealer(size_t size, const char* name)
 {
 }
 
+MemoryDealer::MemoryDealer(size_t size, const char* name)
+    : mHeap(new MemoryHeapBase(size, 0, name)),
+    mAllocator(new SimpleBestFitAllocator(size))
+{
+}
+
+
+
 MemoryDealer::~MemoryDealer()
 {
     delete mAllocator;
