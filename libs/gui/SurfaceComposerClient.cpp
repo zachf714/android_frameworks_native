@@ -651,6 +651,7 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
         return result;
     }
 
+
     int activeId = getActiveConfig(display);
     if (activeId < 0) {
         ALOGE("No active configuration found");
@@ -660,6 +661,13 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
     *info = configs[activeId];
     return NO_ERROR;
 }
+
+status_t SurfaceComposerClient::getDisplayInfo( int32_t displayId, DisplayInfo* info)
+{
+    return getDisplayInfo(getBuiltInDisplay(displayId), info);
+}
+
+// ----------------------------------------------------------------------------
 
 int SurfaceComposerClient::getActiveConfig(const sp<IBinder>& display) {
     return ComposerService::getComposerService()->getActiveConfig(display);
